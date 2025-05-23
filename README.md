@@ -95,5 +95,15 @@ go run main.go -git-show commit_hash
 
 This will print the list of changed files in the specified commit.
 
+## Building an Executable
+
+To build this project into a single executable file for your machine, use the following command:
+
+```bash
+go build main.go
+```
+
+This will create an executable file named `main.exe` on Window or `main` on Linux in the root directory of the project. You can then run this executable directly.
+
 ## Note
 Make sure you have Go installed and configured correctly.

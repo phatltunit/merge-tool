@@ -30,3 +30,17 @@ func GetChangedFiles(commitHash string, config objects.Config){
 	}
 	fmt.Println(constants.BreakLine)
 }
+
+func ExecGitCommand(command string, config objects.Config) {
+	// Run the git command to get the list of changed files
+	cmd := exec.Command("git", command)
+	cmd.Dir = config.GitRepo
+	output, err := cmd.Output()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// Print the output
+	fmt.Println(string(output))
+
+}

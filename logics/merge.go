@@ -130,6 +130,8 @@ func readContentFile(filePath string)(content string){
 func MainLogic(){
 	configPath := flag.String("config", constants.Empty, "The config file path.Ex: .mergeConfig")
 	checkoutCommit := flag.String("git-show", constants.Empty, "Commit hash to show changed files")
+	gitCommand := flag.String("git", constants.Empty, "Git command to execute")
+	showConfig := flag.Bool("show-config", false, "Show config values")
 	flag.Parse()
 	var config objects.Config
 	if *configPath == constants.Empty {
@@ -137,15 +139,25 @@ func MainLogic(){
 	} else {
 		config = LoadConfig(*configPath)
 	}
-	fmt.Println("Workspace: ", nil)
-	fmt.Println("Output folder: ", config.OutputFolder)
-	fmt.Println("Input file: ", config.InputFile)
-	fmt.Println("Sign: ", config.Sign)
-	fmt.Println("Concat char: ", config.ConcatChar)
-	fmt.Println("Whitelist extensions: ", config.WhitelistExtensions)
+	
+
+	if *showConfig {
+		fmt.Println("Workspace: ", config.Workspace)
+		fmt.Println("Git repo: ", config.GitRepo)
+		fmt.Println("Output folder: ", config.OutputFolder)
+		fmt.Println("Input file: ", config.InputFile)
+		fmt.Println("Sign: ", config.Sign)
+		fmt.Println("Concat char: ", config.ConcatChar)
+		fmt.Println("Whitelist extensions: ", config.WhitelistExtensions)
+	}
 
 	if *checkoutCommit != constants.Empty {
 		gitsupports.GetChangedFiles(*checkoutCommit, config)
+		return
+	}
+
+	if *gitCommand != constants.Empty {
+		gitsupports.ExecGitCommand(*gitCommand, config)
 		return
 	}
 

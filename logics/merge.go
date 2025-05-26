@@ -1,18 +1,18 @@
 package logics
 
 import (
+	"bufio"
+	"flag"
 	"fmt"
-	"os"
 	"merge/constants"
 	"merge/gitsupports"
 	"merge/objects"
-	"bufio"
+	"os"
 	"strings"
-	"flag"
+	"sync"
 )
 
-
-func readConfigFile(inputFile string)(configMap map[string]string){
+func readConfigFile(inputFile string) (configMap map[string]string) {
 	// read the mergeConfig file
 	file, err := os.Open(inputFile)
 	if err != nil {
@@ -39,19 +39,19 @@ func readConfigFile(inputFile string)(configMap map[string]string){
 	return configMap
 }
 
-func LoadConfig(file string)(config objects.Config){
+func loadConfig(file string) (config objects.Config) {
 	var configMap map[string]string
 	if file == constants.Empty {
 		configMap = readConfigFile(constants.MergeConfig)
 	} else {
 		configMap = readConfigFile(file)
 	}
-	config =  objects.Config {
-		Workspace: constants.Empty,
-		OutputFolder: constants.DefailtOutputFolder,
-		InputFile: constants.DefaultInputFile,
-		Sign: constants.DefaultSigned,
-		ConcatChar: constants.DefaultConcatChar,
+	config = objects.Config{
+		Workspace:           constants.Empty,
+		OutputFolder:        constants.DefailtOutputFolder,
+		InputFile:           constants.DefaultInputFile,
+		Sign:                constants.DefaultSigned,
+		ConcatChar:          constants.DefaultConcatChar,
 		WhitelistExtensions: []string{constants.SQL},
 	}
 	if configMap != nil {
@@ -63,34 +63,51 @@ func LoadConfig(file string)(config objects.Config){
 		config.WhitelistExtensions = strings.Split(configMap[constants.WhileListExtensions], constants.MultipleValuesSeparator)
 		config.GitRepo = configMap[constants.GitRepo]
 	}
-	
+
 	return config
 }
 
-func ReadInputFile(config objects.Config)(mappingInput map[string]string){
+func readInputFile(config objects.Config) (mappingInput map[string]string) {
 	fmt.Printf(constants.ReadingInputFile, config.InputFile)
 	mappingInput = readConfigFile(config.Workspace + constants.PathSeparator + config.InputFile)
 	return mappingInput
 }
 
-func ProcessInputFileContent(inputFileSetting map[string]string, config objects.Config){
+func processInputPath(wg *sync.WaitGroup, path string, config objects.Config, result chan string) {
+	defer wg.Done()
+	path = strings.TrimSpace(path)
+	if path != constants.Empty {
+		fmt.Printf(constants.ReadingFile, path)
+		contentFromFile := readContentFile(path)
+		if contentFromFile != constants.Empty {
+			result <- contentFromFile + constants.BreakLine + config.ConcatChar + constants.BreakLine
+		}
+	}
+}
+
+func processInputFileContent(inputFileSetting map[string]string, config objects.Config) {
 	for outputFile, inputFile := range inputFileSetting {
 		fmt.Printf(constants.ProcessingOutputFile, outputFile)
 		outFile := config.Workspace + constants.PathSeparator + config.OutputFolder + constants.PathSeparator + outputFile
 		contentFromInput := readContentFile(config.Workspace + constants.PathSeparator + inputFile)
 		lines := strings.Split(contentFromInput, constants.BreakLine)
 		var contentBuilder strings.Builder
+		var wg sync.WaitGroup
+		wg.Add(len(lines))
+		contents := make(chan string, len(lines))
 		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if line != constants.Empty {
-				fmt.Printf(constants.ReadingFile, line)
-				contentFromFile := readContentFile(line)
-				if contentFromFile != constants.Empty {
-					contentBuilder.WriteString(contentFromFile + constants.BreakLine + config.ConcatChar + constants.BreakLine)
-				}
-			}
+			go processInputPath(&wg, line, config, contents)
 		}
-		_ = os.MkdirAll(config.Workspace + constants.PathSeparator + config.OutputFolder, os.ModePerm)
+		wg.Wait()       // wait for all goroutines to finish
+		close(contents) // this is important to close the channel after all goroutines are done
+
+		fmt.Printf("Write content to file: %s \n", outFile)
+		for content := range contents {
+			// We don't need to check for empty content here, as we already checked it in processInputPath
+			contentBuilder.WriteString(content)
+		}
+
+		_ = os.MkdirAll(config.Workspace+constants.PathSeparator+config.OutputFolder, os.ModePerm)
 		outFileFile, err := os.OpenFile(outFile, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			fmt.Println(err)
@@ -103,14 +120,13 @@ func ProcessInputFileContent(inputFileSetting map[string]string, config objects.
 			return
 		}
 
-
 	}
 }
 
-func readContentFile(filePath string)(content string){
+func readContentFile(filePath string) (content string) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		fmt.Printf(constants.FileNotFound , filePath)
+		fmt.Printf(constants.FileNotFound, filePath)
 		return constants.Empty
 	}
 	defer file.Close()
@@ -127,7 +143,7 @@ func readContentFile(filePath string)(content string){
 
 }
 
-func MainLogic(){
+func MainLogic() {
 	configPath := flag.String("config", constants.Empty, "The config file path.Ex: .mergeConfig")
 	checkoutCommit := flag.String("git-show", constants.Empty, "Commit hash to show changed files")
 	gitCommand := flag.String("git", constants.Empty, "Git command to execute")
@@ -135,11 +151,10 @@ func MainLogic(){
 	flag.Parse()
 	var config objects.Config
 	if *configPath == constants.Empty {
-		config = LoadConfig(constants.Empty)
+		config = loadConfig(constants.Empty)
 	} else {
-		config = LoadConfig(*configPath)
+		config = loadConfig(*configPath)
 	}
-	
 
 	if *showConfig {
 		fmt.Println("Workspace: ", config.Workspace)
@@ -161,6 +176,6 @@ func MainLogic(){
 		return
 	}
 
-	ProcessInputFileContent(ReadInputFile(config), config)
+	processInputFileContent(readInputFile(config), config)
 
 }

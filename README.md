@@ -93,7 +93,13 @@ The tool can also be used to get changed files from a git commit. To do this, us
 go run main.go -git-show commit_hash
 ```
 
-This will print the list of changed files in the specified commit.
+This will print the list of changed files in the specified commit. To specify multiple commit hashes, separate them with commas:
+
+```bash
+go run main.go -git-show commit_hash1,commit_hash2,commit_hash3
+```
+
+This will print the list of changed files across all specified commits. The files will be distinct and ordered by alphabet, which will help in some cases.
 
 ## Building an Executable
 

@@ -1,15 +1,14 @@
 package gitsupports
 
 import (
-	"os/exec"
 	"fmt"
-	"strings"
-	"merge/objects"
 	"merge/constants"
+	"merge/objects"
+	"os/exec"
+	"strings"
 )
 
-
-func GetChangedFiles(commitHash string, config objects.Config){
+func GetChangedFiles(commitHash string, config objects.Config) {
 	// Run the git command to get the list of changed files
 	cmd := exec.Command("git", "show", "--pretty=", "--name-only", commitHash)
 	cmd.Dir = config.GitRepo
@@ -20,7 +19,7 @@ func GetChangedFiles(commitHash string, config objects.Config){
 
 	// Split the output into lines and return as a slice of strings
 	files := strings.Split(string(output), constants.BreakLine)
-	fmt.Println(constants.BreakLine)
+	fmt.Println(constants.Empty)
 	// concat files with git repo to get full output path
 	for i, file := range files {
 		if file != constants.Empty {
@@ -35,9 +34,8 @@ func GetChangedFiles(commitHash string, config objects.Config){
 		fmt.Println(file)
 	}
 
-	fmt.Println(constants.BreakLine)
+	fmt.Println(constants.Empty)
 }
-
 
 func orderedFiles(files []string) []string {
 	// Sort the files in alphabetical order

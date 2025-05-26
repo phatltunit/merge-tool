@@ -1,6 +1,6 @@
 OUTPUT_FOLDER=RESULT
 INPUT_FILE=input.txt
-GIT_REPO=D:\Docs\pl01y24dms
+GIT_REPO=/Users/phatle/workspace/GoLang/merge-tool
 SIGN=----->RELEASED<-----
 WORKSPACE=D:\Docs\pl01y24dms\merge-file
 WHILELIST_EXTENSIONS=.sql

@@ -25,10 +25,30 @@ func GetChangedFiles(commitHash string, config objects.Config){
 	for i, file := range files {
 		if file != constants.Empty {
 			files[i] = config.GitRepo + constants.PathSeparator + file
-			fmt.Println(files[i])
+			// fmt.Println(files[i])
 		}
 	}
+
+	orderedFiles := orderedFiles(files)
+
+	for _, file := range orderedFiles {
+		fmt.Println(file)
+	}
+
 	fmt.Println(constants.BreakLine)
+}
+
+
+func orderedFiles(files []string) []string {
+	// Sort the files in alphabetical order
+	for i := 0; i < len(files)-1; i++ {
+		for j := i + 1; j < len(files); j++ {
+			if files[i] > files[j] {
+				files[i], files[j] = files[j], files[i]
+			}
+		}
+	}
+	return files
 }
 
 func ExecGitCommand(command string, config objects.Config) {

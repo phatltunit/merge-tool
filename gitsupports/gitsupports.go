@@ -10,6 +10,7 @@ import (
 	"sync"
 )
 
+// we will use goroutines to check files in parallel
 func checkFileChanged(commitHash string, config objects.Config) []string {
 	hash := strings.Split(commitHash, ",")
 	// Filter out empty strings from the hash slice
@@ -25,7 +26,7 @@ func checkFileChanged(commitHash string, config objects.Config) []string {
 	fileChan := make(chan []string, len(hash))
 	wg.Add(len(hash)) // add the number of goroutines to wait for
 	for _, commit := range hash {
-		singleCheck(commit, config, fileChan, &wg)
+		go singleCheck(commit, config, fileChan, &wg)
 	}
 	wg.Wait()       // wait for all goroutines to finish
 	close(fileChan) // this is important to close the channel after all goroutines are done

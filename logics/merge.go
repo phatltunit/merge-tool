@@ -157,12 +157,22 @@ func MainLogic() {
 	checkoutCommit := flag.String("git-show", constants.Empty, "Commit hash to show changed files")
 	gitCommand := flag.String("git", constants.Empty, "Git command to execute")
 	showConfig := flag.Bool("show-config", false, "Show config values")
+	output := flag.String("output", constants.Empty, "Output folder")
+	sign := flag.String("sign", constants.Empty, "Sign for the output file, default is SIGNED")
 	flag.Parse()
 	var config objects.Config
 	if *configPath == constants.Empty {
 		config = loadConfig(constants.Empty)
 	} else {
 		config = loadConfig(*configPath)
+	}
+
+	if *output != constants.Empty {
+		config.OutputFolder = *output
+	}
+
+	if *sign != constants.Empty {
+		config.Sign = *sign
 	}
 
 	if *showConfig {

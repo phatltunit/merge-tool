@@ -8,13 +8,14 @@ import (
 	"merge/gitsupports"
 	"merge/objects"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 )
 
 func readConfigFile(inputFile string) (configMap map[string]string) {
 	// read the mergeConfig file
-	file, err := os.Open(inputFile)
+	file, err := os.Open(getAbsolutePath(inputFile))
 	if err != nil {
 		return nil
 	}
@@ -39,6 +40,14 @@ func readConfigFile(inputFile string) (configMap map[string]string) {
 	return configMap
 }
 
+func getAbsolutePath(path string) (absPath string) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return constants.Empty
+	}
+	return absPath
+}
+
 func loadConfig(file string) (config objects.Config) {
 	var configMap map[string]string
 	if file == constants.Empty {
@@ -55,13 +64,13 @@ func loadConfig(file string) (config objects.Config) {
 		WhitelistExtensions: []string{constants.SQL},
 	}
 	if configMap != nil {
-		config.Workspace = configMap[constants.WorkspaceKey]
+		config.Workspace = getAbsolutePath(configMap[constants.WorkspaceKey])
 		config.OutputFolder = configMap[constants.OutputFolderKey]
 		config.InputFile = configMap[constants.InputFileKey]
 		config.Sign = configMap[constants.SignKey]
 		config.ConcatChar = configMap[constants.ConcatCharKey]
 		config.WhitelistExtensions = strings.Split(configMap[constants.WhileListExtensions], constants.MultipleValuesSeparator)
-		config.GitRepo = configMap[constants.GitRepo]
+		config.GitRepo = getAbsolutePath(configMap[constants.GitRepo])
 	}
 
 	return config

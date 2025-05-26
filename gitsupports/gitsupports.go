@@ -5,6 +5,7 @@ import (
 	"merge/constants"
 	"merge/objects"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -54,11 +55,19 @@ func singleCheck(commitHash string, config objects.Config, fileChan chan []strin
 	// concat files with git repo to get full output path
 	for i, file := range files {
 		if file != constants.Empty {
-			files[i] = config.GitRepo + constants.PathSeparator + file
+			files[i] = getAbsolutePath(config.GitRepo + constants.PathSeparator + file)
 		}
 	}
 
 	fileChan <- files
+}
+
+func getAbsolutePath(file string) string {
+	absPath, err := filepath.Abs(file)
+	if err != nil {
+		return file
+	}
+	return absPath
 }
 
 func GetChangedFiles(commitHash string, config objects.Config) {

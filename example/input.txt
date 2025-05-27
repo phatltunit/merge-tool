@@ -1,0 +1,2 @@
+output_for_prefix.sql=INPUT_STORE.txt
+other_output.sql=INPUT_STORE.txt

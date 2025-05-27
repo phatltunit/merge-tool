@@ -1,0 +1,1 @@
+child-folder-of-git-repo/file_need_pick_from_marker_to_end.sql

@@ -16,6 +16,7 @@ This tool merges content from multiple files into a single output file based on 
     CONCAT_CHAR=GO
     WHILELIST_EXTENSIONS=.sql
     GIT_REPO=your_git_repo_url
+    PREFIX_INPUT_FILE=input_prefix.txt
     ```
 
     *   `WORKSPACE`: The root directory for all input and output files.
@@ -25,6 +26,7 @@ This tool merges content from multiple files into a single output file based on 
     *   `CONCAT_CHAR`: A character to concatenate the content of the input files (default: `GO`).
     *   `WHILELIST_EXTENSIONS`: A semicolon-separated list of file extensions to include (default: `.sql`).
     *   `GIT_REPO`: The URL of the Git repository (optional).
+    *   `PREFIX_INPUT_FILE`: filters files with a prefix to write to the output file(Optional).
 
 2.  **Input File:**
     *   Create an `input.txt` file (or specify a different input file in the `.mergeConfig` file) that maps output files to input files. Each line in the input file should be in the format `output_file=input_file`.
@@ -34,7 +36,17 @@ This tool merges content from multiple files into a single output file based on 
     output2.txt=input2.txt
     ```
 
-3.  **Running the tool:**
+4.  **Input File with Workspace Prefix Mapping:**
+    *   The `input.txt` file (or specified input file) now supports workspace prefix mapping for input files. This allows you to specify a workspace path as a prefix to the input file path. The format is `output_file=workspace_path:input_file`.
+
+    ```properties
+    output1.txt=workspace1:input1.txt
+    output2.txt=workspace2:input2.txt
+    ```
+
+    *   The `workspace_path` specifies the workspace where the `input_file` is located. If a `workspace_path` is specified, the tool will use that workspace path to locate the input file. If no `workspace_path` is specified, the tool will use the `WORKSPACE` defined in the `.mergeConfig` file.
+
+5.  **Running the tool:**
 
     ```bash
     go run main.go
@@ -51,40 +63,6 @@ This tool merges content from multiple files into a single output file based on 
     ```bash
     go run main.go -git-show commit_hash
     ```
-
-## Example
-
-1.  Create a `.mergeConfig` file:
-
-    ```properties
-    WORKSPACE=d:/Backend/merge
-    OUTPUT_FOLDER=RESULT
-    INPUT_FILE=input.txt
-    SIGN=SIGNED
-    CONCAT_CHAR=GO
-    WHILELIST_EXTENSIONS=.sql
-    ```
-
-2.  Create an `input.txt` file:
-
-    ```properties
-    output.sql=file1.sql
-    ```
-
-3.  Create `file1.sql` in the `d:/Backend/merge` directory:
-
-    ```sql
-    SELECT * FROM table1;
-    ```
-
-4.  Run the tool:
-
-    ```bash
-    go run main.go
-    ```
-
-5.  The merged content will be in `d:/Backend/merge/RESULT/output.sql`.
-
 ## Git Support
 
 The tool can also be used to get changed files from a git commit. To do this, use the `-git-show` flag:

@@ -8,75 +8,9 @@ import (
 	"merge/gitsupports"
 	"merge/objects"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 )
-
-func readConfigFile(inputFile string) (configMap map[string]string) {
-	// read the mergeConfig file
-	file, err := os.Open(getAbsolutePath(inputFile))
-	if err != nil {
-		return nil
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	scanner.Split(bufio.ScanLines)
-
-	configMap = make(map[string]string)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if len(line) == 0 {
-			continue
-		}
-		kv := strings.Split(line, constants.PropertiesSeparator)
-		if len(kv) != 2 {
-			fmt.Printf(constants.InvalidConfigFile, line)
-			continue
-		}
-		configMap[kv[0]] = kv[1]
-	}
-	return configMap
-}
-
-func getAbsolutePath(path string) (absPath string) {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return constants.Empty
-	}
-	return absPath
-}
-
-func loadConfig(file string) (config objects.Config) {
-	var configMap map[string]string
-	if file == constants.Empty {
-		configMap = readConfigFile(constants.MergeConfig)
-	} else {
-		configMap = readConfigFile(file)
-	}
-	config = objects.Config{
-		Workspace:           constants.Empty,
-		OutputFolder:        constants.DefailtOutputFolder,
-		InputFile:           constants.DefaultInputFile,
-		Sign:                constants.DefaultSigned,
-		ConcatChar:          constants.DefaultConcatChar,
-		WhitelistExtensions: []string{constants.SQL},
-		PrefixInputFile:     constants.Empty,
-	}
-	if configMap != nil {
-		config.Workspace = getAbsolutePath(configMap[constants.WorkspaceKey])
-		config.OutputFolder = configMap[constants.OutputFolderKey]
-		config.InputFile = configMap[constants.InputFileKey]
-		config.Sign = configMap[constants.SignKey]
-		config.ConcatChar = configMap[constants.ConcatCharKey]
-		config.WhitelistExtensions = strings.Split(configMap[constants.WhileListExtensions], constants.MultipleValuesSeparator)
-		config.GitRepo = getAbsolutePath(configMap[constants.GitRepo])
-		config.PrefixInputFile = configMap[constants.PrefixInputFile]
-	}
-
-	return config
-}
 
 func readInputFile(config objects.Config) (mappingInput map[string]string) {
 	fmt.Printf(constants.ReadingInputFile, config.InputFile)

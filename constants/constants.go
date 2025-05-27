@@ -34,5 +34,5 @@ const DefaultInputFile string = "input.txt"
 const DefaultSigned string = "SIGNED"
 const DefaultConcatChar string = "GO"
 
-const NOT_EXIST_MARKER_INDEX int = -1
+const COUNT_MARKER_DEFAULT int = 0
 const DateTimeFormat string = "2006-01-02 15:04:05"

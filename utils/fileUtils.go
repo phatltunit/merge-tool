@@ -29,3 +29,12 @@ func WriteToFile(file string, content string, flag int) error {
 	}
 	return nil
 }
+
+func DeleteFileIfExists(file string) {
+	if _, err := os.Stat(file); err == nil {
+		err = os.Remove(file)
+		if err != nil {
+			fmt.Printf("Error deleting file %s: %v\n", file, err)
+		}
+	}
+}

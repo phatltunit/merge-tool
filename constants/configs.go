@@ -20,8 +20,6 @@ const FileNotFound = "File not found: %s \n"
 const MergeConfig string = ".mergeConfig"
 const SQL = ".sql"
 
-
-
 const WorkspaceKey string = "WORKSPACE"
 const OutputFolderKey string = "OUTPUT_FOLDER"
 const InputFileKey string = "INPUT_FILE"
@@ -31,7 +29,7 @@ const BreakLine string = "\n"
 const MultipleValuesSeparator string = ";"
 const WhileListExtensions string = "WHILELIST_EXTENSIONS"
 const GitRepo string = "GIT_REPO"
-
+const PrefixInputFile string = "PREFIX_INPUT_FILE"
 
 const DefailtOutputFolder string = "RESULT"
 const DefaultInputFile string = "input.txt"

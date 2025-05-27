@@ -62,6 +62,7 @@ func loadConfig(file string) (config objects.Config) {
 		Sign:                constants.DefaultSigned,
 		ConcatChar:          constants.DefaultConcatChar,
 		WhitelistExtensions: []string{constants.SQL},
+		PrefixInputFile:     constants.Empty,
 	}
 	if configMap != nil {
 		config.Workspace = getAbsolutePath(configMap[constants.WorkspaceKey])
@@ -71,6 +72,7 @@ func loadConfig(file string) (config objects.Config) {
 		config.ConcatChar = configMap[constants.ConcatCharKey]
 		config.WhitelistExtensions = strings.Split(configMap[constants.WhileListExtensions], constants.MultipleValuesSeparator)
 		config.GitRepo = getAbsolutePath(configMap[constants.GitRepo])
+		config.PrefixInputFile = configMap[constants.PrefixInputFile]
 	}
 
 	return config
@@ -94,7 +96,48 @@ func processInputPath(wg *sync.WaitGroup, path string, config objects.Config, re
 	}
 }
 
+func readPrefixInputFile(config objects.Config) (inputFileSetting map[string]string) {
+	if config.PrefixInputFile == constants.Empty {
+		return make(map[string]string)
+
+	}
+	inputFileSetting = readConfigFile(config.Workspace + constants.PathSeparator + config.PrefixInputFile)
+	if inputFileSetting == nil {
+		return make(map[string]string)
+	}
+
+	for key, value := range inputFileSetting {
+		inputFileSetting[key] = getAbsolutePath(config.GitRepo + constants.PathSeparator + value)
+	}
+
+	return inputFileSetting
+}
+
+func filterPrefixLines(outputFile string, lines []string, prefixMapping map[string]string) []string {
+	prefix, hasPrefix := prefixMapping[outputFile]
+	filteredLines := make([]string, 0, len(lines))
+	if hasPrefix {
+		prefixAbs := getAbsolutePath(prefix)
+		for _, line := range lines {
+			linecopy := getAbsolutePath(line)
+			if strings.HasPrefix(linecopy, prefixAbs) {
+				filteredLines = append(filteredLines, linecopy)
+			}
+		}
+	}
+
+	return filteredLines
+}
+
+func handleLines(lines []string, wg *sync.WaitGroup, config objects.Config, contents chan string) {
+	for _, line := range lines {
+		go processInputPath(wg, line, config, contents)
+	}
+}
+
 func processInputFileContent(inputFileSetting map[string]string, config objects.Config) {
+	prefixMapping := readPrefixInputFile(config)
+
 	for outputFile, inputFile := range inputFileSetting {
 		fmt.Printf(constants.ProcessingOutputFile, outputFile)
 		outFile := config.Workspace + constants.PathSeparator + config.OutputFolder + constants.PathSeparator + outputFile
@@ -102,11 +145,16 @@ func processInputFileContent(inputFileSetting map[string]string, config objects.
 		lines := strings.Split(contentFromInput, constants.BreakLine)
 		var contentBuilder strings.Builder
 		var wg sync.WaitGroup
-		wg.Add(len(lines))
 		contents := make(chan string, len(lines))
-		for _, line := range lines {
-			go processInputPath(&wg, line, config, contents)
+		filtered := filterPrefixLines(outputFile, lines, prefixMapping)
+		if len(filtered) > 0 {
+			wg.Add(len(filtered))
+			handleLines(filtered, &wg, config, contents)
+		} else {
+			wg.Add(len(lines))
+			handleLines(lines, &wg, config, contents)
 		}
+
 		wg.Wait()       // wait for all goroutines to finish
 		close(contents) // this is important to close the channel after all goroutines are done
 

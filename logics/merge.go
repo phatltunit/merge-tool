@@ -7,6 +7,7 @@ import (
 	"merge/constants"
 	"merge/gitsupports"
 	"merge/objects"
+	"merge/utils"
 	"os"
 	"strings"
 	"sync"
@@ -18,16 +19,63 @@ func readInputFile(config objects.Config) (mappingInput map[string]string) {
 	return mappingInput
 }
 
-func processInputPath(wg *sync.WaitGroup, path string, config objects.Config, result chan string) {
+func processInputPath(wg *sync.WaitGroup, path string, config objects.Config, result chan string, partialFileMap map[string]string, skippedFiles map[string]bool) {
 	defer wg.Done()
 	path = strings.TrimSpace(path)
+	_, ok := partialFileMap[path]
+	processedPath := skippedFiles[path]
+	if processedPath {
+		fmt.Printf(constants.FileAlreadyProcessed, path)
+		return
+	}
 	if path != constants.Empty {
 		fmt.Printf(constants.ReadingFile, path)
-		contentFromFile := readContentFile(path)
+
+		var contentFromFile string
+		if ok {
+			fmt.Println("Partial file found, checking for marker")
+			var markerIndex int = checkExistingMarker(path, partialFileMap[path])
+			if markerIndex > constants.NOT_EXIST_MARKER_INDEX {
+				fmt.Println("Found a marker, reading content from marker to end")
+				contentFromFile = readContentFromMarkerToEnd(path, partialFileMap[path], markerIndex)
+			} else {
+				fmt.Println("Marker not found, reading full content")
+				contentFromFile = readContentFile(path)
+			}
+			appendSignToFile(path, config)
+			skippedFiles[path] = true
+		} else {
+			contentFromFile = readContentFile(path)
+		}
+
 		if contentFromFile != constants.Empty {
 			result <- contentFromFile + constants.BreakLine + config.ConcatChar + constants.BreakLine
 		}
 	}
+}
+
+func loadPartialFileMap(config objects.Config) (partialFileMap map[string]string) {
+	if config.PartialFileMap == constants.Empty {
+		return make(map[string]string)
+	}
+	content := readContentFile(config.Workspace + constants.PathSeparator + config.PartialFileMap)
+	partialFileMap = make(map[string]string)
+	for line := range strings.SplitSeq(content, constants.BreakLine) {
+		line = getAbsolutePath(config.GitRepo + constants.PathSeparator + strings.TrimSpace(line))
+		if line != constants.Empty {
+			partialFileMap[line] = config.Sign
+		}
+	}
+
+	return partialFileMap
+}
+
+func appendSignToFile(file string, config objects.Config) {
+	if config.Sign != constants.Empty {
+		copyContent := constants.BreakLine + config.Sign + utils.GetCurrentTime(constants.DateTimeFormat) + constants.BreakLine
+		_ = utils.WriteToFile(file, copyContent, os.O_APPEND|os.O_WRONLY)
+	}
+
 }
 
 func readPrefixInputFile(config objects.Config) (inputFileSetting map[string]string) {
@@ -63,15 +111,16 @@ func filterPrefixLines(outputFile string, lines []string, prefixMapping map[stri
 	return filteredLines
 }
 
-func handleLines(lines []string, wg *sync.WaitGroup, config objects.Config, contents chan string) {
+func handleLines(lines []string, wg *sync.WaitGroup, config objects.Config, contents chan string, partialFileMap map[string]string, skippedFiles map[string]bool) {
 	for _, line := range lines {
-		go processInputPath(wg, line, config, contents)
+		go processInputPath(wg, line, config, contents, partialFileMap, skippedFiles)
 	}
 }
 
 func processInputFileContent(inputFileSetting map[string]string, config objects.Config) {
 	prefixMapping := readPrefixInputFile(config)
-
+	partialFileMap := loadPartialFileMap(config)
+	skippedFiles := make(map[string]bool, len(inputFileSetting))
 	for outputFile, inputFile := range inputFileSetting {
 		fmt.Printf(constants.ProcessingOutputFile, outputFile)
 		outFile := config.Workspace + constants.PathSeparator + config.OutputFolder + constants.PathSeparator + outputFile
@@ -82,11 +131,13 @@ func processInputFileContent(inputFileSetting map[string]string, config objects.
 		contents := make(chan string, len(lines))
 		filtered := filterPrefixLines(outputFile, lines, prefixMapping)
 		if len(filtered) > 0 {
+			// this is very important to add the number of goroutines to wait for
+			// if the number is wrong it will cause deadlock
 			wg.Add(len(filtered))
-			handleLines(filtered, &wg, config, contents)
+			handleLines(filtered, &wg, config, contents, partialFileMap, skippedFiles)
 		} else {
 			wg.Add(len(lines))
-			handleLines(lines, &wg, config, contents)
+			handleLines(lines, &wg, config, contents, partialFileMap, skippedFiles)
 		}
 
 		wg.Wait()       // wait for all goroutines to finish
@@ -132,6 +183,54 @@ func readContentFile(filePath string) (content string) {
 	}
 	return contentBuilder.String()
 
+}
+
+func checkExistingMarker(path string, marker string) int {
+	file, err := os.Open(path)
+	if err != nil {
+		fmt.Printf(constants.FileNotFound, path)
+		return constants.NOT_EXIST_MARKER_INDEX
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanLines)
+
+	for index := 0; scanner.Scan(); index++ {
+		line := scanner.Text()
+		if line == marker {
+			return index
+		}
+	}
+
+	return constants.NOT_EXIST_MARKER_INDEX
+}
+
+func readContentFromMarkerToEnd(path string, marker string, markerIndex int) (result string) {
+	file, err := os.Open(path)
+	if err != nil {
+		fmt.Printf(constants.FileNotFound, path)
+		return constants.Empty
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanLines)
+
+	var contentBuilder strings.Builder
+	foundMarker := false
+	for index := 0; scanner.Scan(); index++ {
+		line := scanner.Text()
+		if strings.HasPrefix(line, marker) && index == markerIndex {
+			foundMarker = true
+			continue
+		}
+		if foundMarker {
+			contentBuilder.WriteString(line + constants.BreakLine)
+		}
+	}
+
+	return contentBuilder.String()
 }
 
 func MainLogic() {

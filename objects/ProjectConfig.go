@@ -9,4 +9,5 @@ type Config struct {
 	WhitelistExtensions []string
 	GitRepo             string
 	PrefixInputFile     string
+	PartialFileMap      string
 }

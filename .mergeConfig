@@ -6,3 +6,4 @@ WORKSPACE=D:\Docs\pl01y24dms\merge-file
 WHILELIST_EXTENSIONS=.sql
 CONCAT_CHAR=GO
 PREFIX_INPUT_FILE=input_prefix.txt
+PARTIAL_FILE_MAP=partial_file_map.txt

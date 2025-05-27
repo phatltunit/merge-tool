@@ -25,6 +25,7 @@ func loadConfig(file string) (config objects.Config) {
 		ConcatChar:          constants.DefaultConcatChar,
 		WhitelistExtensions: []string{constants.SQL},
 		PrefixInputFile:     constants.Empty,
+		PartialFileMap:      constants.Empty,
 	}
 	if configMap != nil {
 		config.Workspace = getAbsolutePath(configMap[constants.WorkspaceKey])
@@ -35,6 +36,7 @@ func loadConfig(file string) (config objects.Config) {
 		config.WhitelistExtensions = strings.Split(configMap[constants.WhileListExtensions], constants.MultipleValuesSeparator)
 		config.GitRepo = getAbsolutePath(configMap[constants.GitRepo])
 		config.PrefixInputFile = configMap[constants.PrefixInputFile]
+		config.PartialFileMap = configMap[constants.PartialFileMap]
 	}
 
 	return config

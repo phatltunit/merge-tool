@@ -1,6 +1,10 @@
 package utils
 
-import "path/filepath"
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+)
 
 func GetAbsolutePath(file string) string {
 	absPath, err := filepath.Abs(file)
@@ -8,4 +12,20 @@ func GetAbsolutePath(file string) string {
 		return file
 	}
 	return absPath
+}
+
+func WriteToFile(file string, content string, flag int) error {
+	outFile, err := os.OpenFile(file, flag, 0666)
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		return err
+	}
+	defer outFile.Close()
+
+	_, err = outFile.WriteString(content)
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+		return err
+	}
+	return nil
 }

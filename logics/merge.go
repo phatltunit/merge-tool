@@ -13,10 +13,10 @@ import (
 	"sync"
 )
 
-func readInputFile(config objects.Config) (mappingInput map[string]string) {
+func readInputFile(config objects.Config) (mappingInput map[string]string, keys []string) {
 	fmt.Printf(constants.ReadingInputFile, config.InputFile)
-	mappingInput = readConfigFile(config.Workspace + constants.PathSeparator + config.InputFile)
-	return mappingInput
+	mappingInput, keys = readConfigFile(config.Workspace + constants.PathSeparator + config.InputFile)
+	return mappingInput, keys
 }
 
 func processInputPath(wg *sync.WaitGroup, path string, config objects.Config, result chan string, partialFileMap map[string]string, skippedFiles map[string]bool, skippedFile chan string) {
@@ -83,12 +83,13 @@ func readPrefixInputFile(config objects.Config) (inputFileSetting map[string]str
 		return make(map[string]string)
 
 	}
-	inputFileSetting = readConfigFile(config.Workspace + constants.PathSeparator + config.PrefixInputFile)
+	inputFileSetting, keys := readConfigFile(config.Workspace + constants.PathSeparator + config.PrefixInputFile)
 	if inputFileSetting == nil {
 		return make(map[string]string)
 	}
 
-	for key, value := range inputFileSetting {
+	for _, key := range keys {
+		value := inputFileSetting[key]
 		inputFileSetting[key] = getAbsolutePath(config.GitRepo + constants.PathSeparator + value)
 	}
 
@@ -117,11 +118,14 @@ func handleLines(lines []string, wg *sync.WaitGroup, config objects.Config, cont
 	}
 }
 
-func processInputFileContent(inputFileSetting map[string]string, config objects.Config) {
+func processInputFileContent(inputFileSetting map[string]string, keys []string, config objects.Config) {
 	prefixMapping := readPrefixInputFile(config)
 	partialFileMap := loadPartialFileMap(config)
 	skippedFiles := make(map[string]bool, len(inputFileSetting))
-	for outputFile, inputFile := range inputFileSetting {
+	// for outputFile, inputFile := range inputFileSetting {
+	for _, outputFile := range keys {
+
+		inputFile := inputFileSetting[outputFile]
 		fmt.Printf(constants.ProcessingOutputFile, outputFile)
 		outFile := config.Workspace + constants.PathSeparator + config.OutputFolder + constants.PathSeparator + outputFile
 		contentFromInput := readContentFile(config.Workspace + constants.PathSeparator + inputFile)
@@ -129,9 +133,10 @@ func processInputFileContent(inputFileSetting map[string]string, config objects.
 		var contentBuilder strings.Builder
 		var wg sync.WaitGroup
 		contents := make(chan string, len(lines))
-		filtered := filterPrefixLines(outputFile, lines, prefixMapping)
+		isConfigPrefix := prefixMapping[outputFile] != constants.Empty
 		skippedFile := make(chan string, len(lines))
-		if len(filtered) > 0 {
+		if isConfigPrefix {
+			filtered := filterPrefixLines(outputFile, lines, prefixMapping)
 			// this is very important to add the number of goroutines to wait for
 			// if the number is wrong it will cause deadlock
 			wg.Add(len(filtered))
@@ -243,6 +248,16 @@ func readContentFromMarkerToEnd(path string, marker string, markerIndex int) (re
 	return contentBuilder.String()
 }
 
+func cleanUp(outputFiles []string, config objects.Config) {
+	fmt.Printf(constants.CleaningUpOutputFile)
+	for _, outputFile := range outputFiles {
+		outFile := getAbsolutePath(config.Workspace + constants.PathSeparator + config.OutputFolder + constants.PathSeparator + outputFile)
+		if info, err := os.Stat(outFile); err == nil && info.Size() == 0 {
+			utils.DeleteFileIfExists(outFile)
+		}
+	}
+}
+
 func MainLogic() {
 	configPath := flag.String("config", constants.Empty, "The config file path.Ex: .mergeConfig")
 	checkoutCommit := flag.String("git-show", constants.Empty, "Commit hash to show changed files")
@@ -285,7 +300,7 @@ func MainLogic() {
 		gitsupports.ExecGitCommand(*gitCommand, config)
 		return
 	}
-
-	processInputFileContent(readInputFile(config), config)
-
+	inputMap, keys := readInputFile(config)
+	processInputFileContent(inputMap, keys, config)
+	cleanUp(keys, config)
 }

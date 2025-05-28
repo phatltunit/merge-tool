@@ -13,9 +13,9 @@ import (
 func loadConfig(file string) (config objects.Config) {
 	var configMap map[string]string
 	if file == constants.Empty {
-		configMap = readConfigFile(constants.MergeConfig)
+		configMap, _ = readConfigFile(constants.MergeConfig)
 	} else {
-		configMap = readConfigFile(file)
+		configMap, _ = readConfigFile(file)
 	}
 	config = objects.Config{
 		Workspace:           constants.Empty,
@@ -46,11 +46,11 @@ func getAbsolutePath(path string) (absPath string) {
 	return utils.GetAbsolutePath(path)
 }
 
-func readConfigFile(inputFile string) (configMap map[string]string) {
+func readConfigFile(inputFile string) (configMap map[string]string, keys []string) {
 	// read the mergeConfig file
 	file, err := os.Open(getAbsolutePath(inputFile))
 	if err != nil {
-		return nil
+		return nil, nil
 	}
 	defer file.Close()
 
@@ -68,7 +68,10 @@ func readConfigFile(inputFile string) (configMap map[string]string) {
 			fmt.Printf(constants.InvalidConfigFile, line)
 			continue
 		}
-		configMap[kv[0]] = kv[1]
+		key := kv[0]
+		value := kv[1]
+		configMap[key] = value
+		keys = append(keys, key)
 	}
-	return configMap
+	return configMap, keys
 }

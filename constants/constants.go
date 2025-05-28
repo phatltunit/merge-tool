@@ -9,6 +9,7 @@ const ProcessingOutputFile = "Processing data for output file: %s ... \n"
 const ReadingFile = "Reading file: %s ... \n"
 const FileNotFound = "File not found: %s \n"
 const FileAlreadyProcessed = "File %s has been processed, skipping...\n"
+const CleaningUpOutputFile = "Cleaning up files with no content ...\n"
 
 const MergeConfig string = ".mergeConfig"
 const SQL = ".sql"

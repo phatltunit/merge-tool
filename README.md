@@ -43,3 +43,5 @@ To use `main.exe` from the command line, add its directory to the `PATH` environ
 *   **`merge --sign <sign>`**: Overrides the `SIGN` configuration.
 *   **`merge --git <git_command>`**: Runs a Git command.
 *   **`merge --show-config`**: Displays the loaded configuration.
+
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/phatltunit/merge-tool?utm_source=oss&utm_medium=github&utm_campaign=phatltunit%2Fmerge-tool&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)

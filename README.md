@@ -1,117 +1,45 @@
 # Merge Tool
 
-This tool merges content from multiple files into a single output file based on a configuration.
+## 1. Configuration (`.mergeConfig` file)
 
-## Usage
+The `.mergeConfig` file contains the main configuration parameters for the merge process:
 
-1.  **Configuration:**
-    *   Create a `.mergeConfig` file in the root directory of your project, or specify a config file path using the `-config` flag.
-    *   The `.mergeConfig` file should contain key-value pairs defining the tool's configuration.
+*   **WORKSPACE**: The location containing configuration files. The `.mergeConfig` file does not necessarily need to be in this directory.
+*   **WHILELIST_EXTENSIONS**: File extensions that will be merged (e.g., `.sql`, `.txt`).
+*   **CONCAT_CHAR**: The character or string used to concatenate content when merging multiple SQL files (e.g., `GO` or `\`).
+*   **INPUT_FILE**: A file that defines the mapping between input files and their corresponding output files.
+*   **PREFIX_INPUT_FILE**: Defines paths to files with prefixes that will be merged into the corresponding output. Typically `input_prefix.txt`.
+*   **PARTIAL_FILE_MAP**: Specifies files from which only a partial content should be taken, starting from the position indicated by the `SIGN` configuration value until the end of the file.
+*   **SIGN**: A unique value automatically appended to the end of the file when processing partial files. This value is used to automatically find the starting point for subsequent processing.
+*   **GIT_REPO**: The root directory containing the `.git` directory.
+*   **OUTPUT_FOLDER**: Defines the output files relative to the `WORKSPACE` directory.
 
-    ```properties
-    WORKSPACE=your_workspace_path
-    OUTPUT_FOLDER=RESULT
-    INPUT_FILE=input.txt
-    SIGN=SIGNED
-    CONCAT_CHAR=GO
-    WHILELIST_EXTENSIONS=.sql
-    GIT_REPO=your_git_repo_url
-    PREFIX_INPUT_FILE=input_prefix.txt
-    ```
+**Note**: The `GIT_REPO`, `WORKSPACE`, `CONCAT_CHAR`, `PREFIX_INPUT_FILE`, and `PARTIAL_FILE_MAP` configurations need to be redefined based on usage.
 
-    *   `WORKSPACE`: The root directory for all input and output files.
-    *   `OUTPUT_FOLDER`: The directory where the merged output files will be created (default: `RESULT`).
-    *   `INPUT_FILE`: The input file containing a mapping of output files to input files.
-    *   `SIGN`: A signature to add to the output files (default: `SIGNED`).
-    *   `CONCAT_CHAR`: A character to concatenate the content of the input files (default: `GO`).
-    *   `WHILELIST_EXTENSIONS`: A semicolon-separated list of file extensions to include (default: `.sql`).
-    *   `GIT_REPO`: The URL of the Git repository (optional).
-    *   `PREFIX_INPUT_FILE`: filters files with a prefix to write to the output file (Optional).
-    *   `PARTIAL_FILE_MAP`: The file containing a list of files where only content from a specific marker to the end of the file should be included (Optional). This file should contain a list of file paths, one per line. For each file in this list, the tool will only include content from the line containing the `SIGN` marker to the end of the file.
+## 2. Usage
 
-2.  **Input File:**
-    *   Create an `input.txt` file (or specify a different input file in the `.mergeConfig` file) that maps output files to input files. Each line in the input file should be in the format `output_file=input_file`.
+The program reads the `INPUT_FILE` to determine which configuration file to read for each output file. Currently, all configurations will be read from `all_input.txt` for convenience, allowing for a single copy-paste operation (e.g., from a `git show` command). Therefore, another configuration is needed to map based on prefixes using `PREFIX_INPUT_FILE`.
 
-    ```properties
-    output1.txt=input1.txt
-    output2.txt=input2.txt
-    ```
+With this configuration, the program will read from the `input_prefix.txt` file. In this file, each prefix path will correspond to an output.
 
-5.  **Prefix Input File:**
-    *   The `PREFIX_INPUT_FILE` config option allows you to filter files with a prefix to write to the output file. The `input_prefix.txt` file should contain a mapping of output files to prefix paths, one per line. The format is `output_file=prefix_path`.
-    ```properties
-    output_for_prefix.sql=path/prefix_or_file
-    ```
-    *   In this case, only files in `INPUT_STORE.txt` that have the prefix `path/prefix_or_file` will be written to `output_for_prefix.sql`.
-    *   **Note:** When using prefixes, the pattern nearest the file should be on the top of the input.txt file. This is because after a file is processed, it will be skipped if encountered again.
+This handles cases where multiple files are concatenated into a single output.
 
-6.  **Input File with Workspace Prefix Mapping:**
-    *   The `input.txt` file (or specified input file) now supports workspace prefix mapping for input files. This allows you to specify a workspace path as a prefix to the input file path. The format is `output_file=workspace_path:input_file`.
+For cases where only a partial content from a file is needed, starting from the `SIGN` value, another configuration, `PARTIAL_FILE_MAP`, will be added. This file specifies which files should only have partial content taken.
 
-    ```properties
-    output1.txt=workspace1:input1.txt
-    output2.txt=workspace2:input2.txt
-    ```
+There are cases where a file from which only partial content is needed is within the same prefix as other outputs. Therefore, we will prioritize files with the closest prefix to the file (refer to the sample configuration).
 
-    *   The `workspace_path` specifies the workspace where the `input_file` is located. If a `workspace_path` is specified, the tool will use that workspace path to locate the input file. If no `workspace_path` is specified, the tool will use the `WORKSPACE` defined in the `.mergeConfig` file.
+## 3. Other Features
 
-5.  **Running the tool:**
+Additionally, the program supports Git:
 
-    ```bash
-    go run main.go
-    ```
+*   **`--git-show <commit_hash>`**: Retrieves a list of files in that commit. Multiple commits can be retrieved simultaneously by separating each `<hash_commit>` with a comma (`,`) without spaces.
 
-    *   To specify a config file:
+To use `main.exe` from the command line, add its directory to the `PATH` environment variable and optionally rename the file (e.g., to `merge.exe`).
 
-    ```bash
-    go run main.go -config your_config_file.config
-    ```
-
-    *   To get changed files from a git commit:
-
-    ```bash
-    go run main.go -git-show commit_hash
-    ```
-
-    *   To execute a git command:
-
-    ```bash
-    go run main.go -git "status"
-    ```
-
-## Git Support
-
-The tool can also be used to get changed files from a git commit. To do this, use the `-git-show` flag:
-
-```bash
-go run main.go -git-show commit_hash
-```
-
-This will print the list of changed files in the specified commit. To specify multiple commit hashes, separate them with commas:
-
-```bash
-go run main.go -git-show commit_hash1,commit_hash2,commit_hash3
-```
-
-This will print the list of changed files across all specified commits. The files will be distinct and ordered by alphabet, which will help in some cases.
-
-## Whitelist Extensions
-
-The `WHILELIST_EXTENSIONS` config option allows you to specify a semicolon-separated list of file extensions to include. For example:
-
-```properties
-WHILELIST_EXTENSIONS=.sql;.txt
-```
-
-## Building an Executable
-
-To build this project into a single executable file for your machine, use the following command:
-
-```bash
-go build main.go
-```
-
-This will create an executable file named `main.exe` on Window or `main` on Linux in the root directory of the project. You can then run this executable directly.
-
-## Note
-Make sure you have Go installed and configured correctly.
+*   **`merge --git-show <hash1>,<hash2>`**: Retrieves files from two commits, `<hash1>` and `<hash2>`.
+*   **`merge --help`**: Displays help instructions.
+*   **`merge --config <path_to_mergeconfig>`**: Performs a merge according to the configuration from the specified config file, callable from anywhere.
+*   **`merge --output <path>`**: Overrides the `OUTPUT_FOLDER` configuration.
+*   **`merge --sign <sign>`**: Overrides the `SIGN` configuration.
+*   **`merge --git <git_command>`**: Runs a Git command.
+*   **`merge --show-config`**: Displays the loaded configuration.

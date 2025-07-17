@@ -33,7 +33,7 @@ func loadConfig(file string) (config objects.Config) {
 		config.InputFile = configMap[constants.InputFileKey]
 		config.Sign = configMap[constants.SignKey]
 		config.ConcatChar = configMap[constants.ConcatCharKey]
-		config.WhitelistExtensions = strings.Split(configMap[constants.WhileListExtensions], constants.MultipleValuesSeparator)
+		config.WhitelistExtensions = strings.Split(configMap[constants.WhiteListExtensions], constants.MultipleValuesSeparator)
 		config.GitRepo = getAbsolutePath(configMap[constants.GitRepo])
 		config.PrefixInputFile = configMap[constants.PrefixInputFile]
 		config.PartialFileMap = configMap[constants.PartialFileMap]

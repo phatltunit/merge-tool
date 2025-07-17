@@ -5,7 +5,7 @@
 The `.mergeConfig` file contains the main configuration parameters for the merge process:
 
 *   **WORKSPACE**: The location containing configuration files. The `.mergeConfig` file does not necessarily need to be in this directory.
-*   **WHILELIST_EXTENSIONS**: File extensions that will be merged (e.g., `.sql`, `.txt`).
+*   **WHITELIST_EXTENSIONS**: File extensions that will be merged (e.g., `.sql`, `.txt`).
 *   **CONCAT_CHAR**: The character or string used to concatenate content when merging multiple SQL files (e.g., `GO` or `\`).
 *   **INPUT_FILE**: A file that defines the mapping between input files and their corresponding output files.
 *   **PREFIX_INPUT_FILE**: Defines paths to files with prefixes that will be merged into the corresponding output. Typically `input_prefix.txt`.
